@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script
+            src="https://code.jquery.com/jquery-3.2.1.min.js"
+            integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+            integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.19.2/moment.min.js"></script>
+</head>
+<body>
+
+<div id="app" class="container-fluid">
+    {{ getInfo(places) }}
+    <div class="col-lg-3 col-md-6 col-sm-6 " v-for="place in places" :id="'place-' + place.id">
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h4>{{ place.title }}</h4>
+                <span class="badge badge-success">{{ place.time }}</span>
+            </div>
+            <div class="panel-body panel-height">
+                <div class="text-center">
+                    {{ place.text }}
+                    <span>
+                        <a href="#" :title='place.title' class="thumb">
+                                <img :src='place.image'
+                                     class="img-responsive img-rounded" data-toggle="modal"
+                                     data-target=".modal-profile-lg">
+                                </a>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- .modal-profile -->
+<div class="modal fade modal-profile" tabindex="-1" role="dialog" aria-labelledby="modalProfile" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="close" type="button" data-dismiss="modal">×</button>
+                <h3 class="modal-title"></h3>
+            </div>
+            <div class="modal-body">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- //.modal-profile -->
+
+</body>
+</html>
+
+<script>
+        $(document).ready(function() {
+            /* show lightbox when clicking a thumbnail */
+            $('a.thumb').click(function(event){
+                event.preventDefault();
+                var content = $('.modal-body');
+                content.empty();
+                var title = $(this).attr("title");
+                $('.modal-title').html(title);
+                content.html($(this).html());
+                $(".modal-profile").modal({show:true});
+            });
+
+        });
+
+    var app = new Vue({
+        el: '#app',
+        data: {
+            places: [
+                {id: 0, title: 'Amber grill', url: 'ambergrill.lt', time: '', image: '', text: '', post_id: '' },
+                {id: 1, title: 'Pepper pizza', url: 'pepperpizza.grill', time: '', image: '', text: '', post_id: ''},
+                {id: 2, title: 'Liuks kebabai', url: 'liukskebabai', time: '', image: '', text: '', post_id: ''},
+                {id: 3, title: 'Zaliuke', url: 'zaliuke', time: '', image: '', text: '', post_id: ''}
+            ]
+        },
+        methods: {
+            getPhoto(post_id, token, fb_url, place) {
+                photo_url = fb_url + post_id + '?fields=attachments&access_token=' + token;
+                axios.get(photo_url)
+                    .then(response => {
+                        if(response.data.attachments) {
+                            place.text = response.data.attachments.data[0].description;
+                            place.image = response.data.attachments.data[0].media.image.src;
+                        }
+                }).catch(e => {
+                        //console.log(e);
+                });
+            },
+            getInfo(places) {
+                token = 'EAACAnBtre2YBAOAnjHoTlnLi8AMVfdMXQLmqhYXWC9TuNrJTOgq0VHd8K5ZAjsXVFCa1J6qAtquLNchJGRnWnyuGWfBZCV7S7gDa2r7mc4jJkQ0ZCdW0at999xgVLZBs3FXsr7JfeB2edrAYjGcvhfiNoKeSfjgZD';
+                fb_url =  'https://graph.facebook.com/v2.11/';
+                var self = this;
+                places.forEach(function(place) {
+                    url = fb_url + place.url + '/feed?access_token=' + token;
+                    axios.get(url)
+                        .then(response => {
+                            place.text = response.data.data[0].message;
+                            place.time = moment(String(response.data.data[0].created_time)).format('YYYY-MM-DD hh:mm');
+                            place.post_id = response.data.data[0].id;
+                        }).catch(e => {
+                      //  console.log(e);
+                        });
+                    self.getPhoto(place.post_id, token, fb_url, place);
+                });
+            }
+        }
+    });
+</script>
